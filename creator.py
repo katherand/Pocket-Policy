@@ -1,0 +1,173 @@
+import json
+import os
+
+def generate_portal():
+    print("🛠️ Creator module reading local policies data file...")
+    
+    if not os.path.exists("policies.json"):
+        print("❌ Error: 'policies.json' not found! Run 'python3 scrapyr.py' first.")
+        return
+
+    with open("policies.json", "r", encoding="utf-8") as f:
+        records = json.load(f)
+
+    # 1. BAKE THE Isolated DATA LAYER ('data.js')
+    json_string = json.dumps(records, indent=4)
+    data_js_content = "const database = " + json_string + ";"
+    
+    with open("data.js", "w", encoding="utf-8") as f:
+        f.write(data_js_content)
+    print("📦 Created 'data.js' layer containing your clean array structure.")
+
+    # 2. BAKE THE PRESENTATION LAYER ('index.html')
+    html_content = """<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Pocket Policy</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 30px; background-color: #F7FAFC; color: #2D3748; padding-bottom: 60px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { color: #1C3D5A; border-bottom: 3px solid #1C3D5A; padding-bottom: 10px; margin-bottom: 5px; font-size: 32px; font-weight: bold; }
+        .search-box { width: 100%; padding: 15px; font-size: 16px; border: 2px solid #CBD5E0; border-radius: 6px; box-sizing: border-box; margin-bottom: 20px; background: white; }
+        .search-box:focus { outline: none; border-color: #1C3D5A; box-shadow: 0 0 8px rgba(28,61,90,0.2); }
+        .meta-info { font-size: 14px; color: #718096; margin-bottom: 20px; font-weight: 500; }
+        
+        .card { background: white; padding: 20px; margin-bottom: 15px; border-radius: 6px; border-left: 5px solid #1C3D5A; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: flex-start; align-items: flex-start; text-decoration: none; color: inherit; transition: all 0.2s; cursor: pointer; }
+        .card:active { transform: scale(0.98); background: #F7FAFC; }
+        
+        .source-tag { font-weight: bold; color: #1C3D5A; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; background: #EBF8FF; padding: 3px 8px; border-radius: 4px; display: inline-block; margin-bottom: 12px; }
+        .rule-text { font-size: 16px; line-height: 1.6; color: #2D3748; width: 100%; }
+        
+        .card.visited { border-left-color: #A0AEC0; background: #FAFAFA; opacity: 0.6; }
+        .card.visited .source-tag { background: #E2E8F0; color: #4A5568; }
+        
+        .highlight { background-color: #FFF3C4; font-weight: bold; padding: 2px 0; }
+        .no-results { text-align: center; color: #718096; margin-top: 50px; font-size: 16px; line-height: 1.5; }
+        
+        .footer-banner { background: white; border-top: 1px solid #E2E8F0; padding: 15px; position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 13px; color: #4A5568; box-shadow: 0 -4px 12px rgba(0,0,0,0.03); z-index: 1000; }
+        .footer-banner a { color: #1C3D5A; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Pocket Policy</h1>
+        <p class="meta-info">The Commons: PublicSphere | Official rules, made readable.</p>
+        
+        <input type="text" id="search-input" class="search-box" placeholder="What are you looking for? (Type words like: resources, vehicles, limits...)" oninput="performSearch()">
+        
+        <div id="results-container">
+            <p class="no-results">✨ <strong>Type what you're trying to find above.</strong><br>We will instantly look through all the complex policy pages to pull up the exact sections you need.</p>
+        </div>
+    </div>
+
+    <div class="footer-banner">
+        📱 <strong>Want a quick shortcut on your phone screen?</strong> Open your browser menu &rarr; select <a href="#" onclick="alertPWAInstructions(); return false;">"Add to Home Screen"</a>.
+    </div>
+
+    <script src="data.js"></script>
+
+    <script>
+        function performSearch() {
+            try {
+                const query = document.getElementById('search-input').value.toLowerCase().trim();
+                const container = document.getElementById('results-container');
+                container.innerHTML = '';
+                
+                // FIXED: Using backticks (``) for innerHTML template strings to allow natural single and double quotes without string breakout crashes
+                if (query.length < 2) {
+                    container.innerHTML = `<p class="no-results">✨ <strong>Type what you're trying to find above.</strong><br>We will instantly look through all the complex policy pages to pull up the exact sections you need.</p>`;
+                    return;
+                }
+                
+                const matches = database.filter(item => {
+                    const searchTarget = (item.title || item.text || item.name || "").toLowerCase();
+                    return searchTarget.includes(query);
+                });
+                
+                if (matches.length === 0) {
+                    container.innerHTML = `<p class="no-results">🔍 <strong>We couldn't find any official rules for "${query}".</strong><br>Check your spelling, or try typing a broader word like "asset" or "income".</p>`;
+                    return;
+                }
+                
+                const limit = Math.min(matches.length, 100);
+                for (let i = 0; i < limit; i++) {
+                    const item = matches[i];
+                    const reg = new RegExp(query, 'gi');
+                    
+                    const rawDisplayText = item.title || item.text || item.name || "Untitled Policy Entry";
+                    const highlightedText = rawDisplayText.replace(reg, (match) => `<span class="highlight">${match}</span>`);
+                    
+                    const isVisited = localStorage.getItem(item.id) === "visited";
+                    const cardClass = isVisited ? 'card visited' : 'card';
+                    
+                    const card = document.createElement('div');
+                    card.className = cardClass;
+                    card.id = item.id || ('doc_' + i);
+                    
+                    card.dataset.url = item.url || item.href || "#";
+                    card.addEventListener('click', function() {
+                        handleCardClick(this.id, this.dataset.url);
+                    });
+
+                    const displayBadge = item.type || "LINK";
+
+                    card.innerHTML = `
+                        <span class="source-tag">${displayBadge}</span>
+                        <div class="rule-text">${highlightedText}</div>
+                    `;
+                    container.appendChild(card);
+                }
+            } catch (err) {
+                console.error("Search Loop Failure:", err);
+            }
+        }
+
+        function handleCardClick(id, targetUrl) {
+            localStorage.setItem(id, "visited");
+            const card = document.getElementById(id);
+            if (card) card.classList.add('visited');
+            
+            // Extract the raw text from the clicked card (minus the badge text)
+            const textToCopy = card.querySelector('.rule-text').innerText.trim();
+            
+            // Automatically copy it to the user's phone/computer clipboard
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(textToCopy).catch(err => {
+                    console.error('Clipboard copy blocked:', err);
+                });
+            }
+
+            alert(
+                '📋 EXACT TEXT COPIED TO CLIPBOARD!\\n\\n' +
+                'When the document opens, use your device search tool and simply PASTE to jump straight to the line:\\n\\n' +
+                '📱 iPhone: Tap the Puzzle Piece icon in the address bar -> choose "Find on Page".\\n\\n' +
+                '🤖 Android: Tap the 3 dots menu (top right) -> choose "Find in page".\\n\\n' +
+                '🖥️ Desktop/Tablet: Press Cmd+F (Mac) or Ctrl+F (Windows/Linux).\\n\\n' +
+                '⚠️ SAFETY NOTE: State rules change. Please DELETE this document file after use so you do not rely on outdated data!'
+            );
+            
+            window.open(targetUrl, '_blank');
+        }
+
+        function alertPWAInstructions() {
+            alert(
+                'Keep Pocket Policy handy on your phone:\\n\\n' +
+                'Apple iPhone (Safari): Tap the "Share" button (the box with an up arrow) at the bottom, then choose "Add to Home Screen".\\n\\n' +
+                'Android (Chrome): Tap the three dots menu in the top right corner, then choose "Add to Home Screen".'
+            );
+        }
+    </script>
+</body>
+</html>
+"""
+
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(html_content)
+    print("✨ SUCCESS! All internal string quotes safely wrapped. Your app is ready!")
+
+if __name__ == "__main__":
+    generate_portal()
