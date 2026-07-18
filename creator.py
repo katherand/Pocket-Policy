@@ -2,24 +2,22 @@ import json
 import os
 
 def generate_portal():
-    print("🛠️ Creator module reading local policies data file...")
+    print("🛠️ Pocket Policy Creator building accessible high-contrast reader...")
     
     if not os.path.exists("policies.json"):
-        print("❌ Error: 'policies.json' not found! Run 'python3 scrapyr.py' first.")
+        print("❌ Error: 'policies.json' missing! Run 'python3 scrapyr.py' first.")
         return
 
     with open("policies.json", "r", encoding="utf-8") as f:
         records = json.load(f)
 
-    # 1. BAKE THE Isolated DATA LAYER ('data.js')
     json_string = json.dumps(records, indent=4)
     data_js_content = "const database = " + json_string + ";"
     
     with open("data.js", "w", encoding="utf-8") as f:
         f.write(data_js_content)
-    print("📦 Created 'data.js' layer containing your clean array structure.")
+    print("📦 Synchronized 'data.js' dataset file.")
 
-    # 2. BAKE THE PRESENTATION LAYER ('index.html')
     html_content = """<!DOCTYPE html>
 <html>
 <head>
@@ -29,43 +27,59 @@ def generate_portal():
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>Pocket Policy</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 30px; background-color: #F7FAFC; color: #2D3748; padding-bottom: 60px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 20px; background-color: #F7FAFC; color: #2D3748; padding-bottom: 60px; }
         .container { max-width: 900px; margin: 0 auto; }
-        h1 { color: #1C3D5A; border-bottom: 3px solid #1C3D5A; padding-bottom: 10px; margin-bottom: 5px; font-size: 32px; font-weight: bold; }
-        .search-box { width: 100%; padding: 15px; font-size: 16px; border: 2px solid #CBD5E0; border-radius: 6px; box-sizing: border-box; margin-bottom: 20px; background: white; }
+        h1 { color: #1C3D5A; border-bottom: 3px solid #1C3D5A; padding-bottom: 10px; margin-bottom: 5px; font-size: 28px; font-weight: bold; }
+        .search-box { width: 100%; padding: 12px; font-size: 16px; border: 2px solid #CBD5E0; border-radius: 6px; box-sizing: border-box; margin-bottom: 15px; background: white; }
         .search-box:focus { outline: none; border-color: #1C3D5A; box-shadow: 0 0 8px rgba(28,61,90,0.2); }
-        .meta-info { font-size: 14px; color: #718096; margin-bottom: 20px; font-weight: 500; }
+        .meta-info { font-size: 13px; color: #718096; margin-bottom: 15px; font-weight: 500; }
         
-        .card { background: white; padding: 20px; margin-bottom: 15px; border-radius: 6px; border-left: 5px solid #1C3D5A; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: flex-start; align-items: flex-start; text-decoration: none; color: inherit; transition: all 0.2s; cursor: pointer; }
-        .card:active { transform: scale(0.98); background: #F7FAFC; }
+        .card { background: white; margin-bottom: 12px; border-radius: 6px; border-left: 5px solid #1C3D5A; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; transition: all 0.2s; }
+        .card-header { padding: 15px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; }
+        .card:active .card-header { background: #F7FAFC; }
         
-        .source-tag { font-weight: bold; color: #1C3D5A; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; background: #EBF8FF; padding: 3px 8px; border-radius: 4px; display: inline-block; margin-bottom: 12px; }
-        .rule-text { font-size: 16px; line-height: 1.6; color: #2D3748; width: 100%; }
+        .source-tag { font-weight: bold; color: #1C3D5A; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; background: #EBF8FF; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 8px; }
+        .rule-text { font-size: 15px; line-height: 1.5; color: #2D3748; width: 100%; }
         
-        .card.visited { border-left-color: #A0AEC0; background: #FAFAFA; opacity: 0.6; }
+        /* Nested Breakdown Content Box */
+        .nested-breakdown { display: none; background: #F8FAFC; border-top: 1px solid #E2E8F0; padding: 15px; font-size: 14px; color: #2D3748; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
+        .context-stream { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+        
+        /* ACCESSIBILITY FIX: Matched color to #2D3748 and bumped up opacity to 1 for perfect contrast */
+        .context-block { padding-left: 10px; border-left: 3px solid #CBD5E0; font-style: italic; color: #2D3748; opacity: 1; line-height: 1.5; }
+        .context-block.current { font-style: normal; font-weight: 500; border-left-color: #3182CE; background: #FFF3C4; padding: 6px 10px; border-radius: 4px; }
+        
+        .expansion-trigger { text-align: center; margin: 5px 0; font-size: 12px; font-weight: bold; color: #1C3D5A; cursor: pointer; padding: 6px; background: #E2E8F0; border-radius: 4px; transition: background 0.2s; }
+        .expansion-trigger:hover { background: #CBD5E0; }
+        
+        .action-bar { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #CBD5E0; display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn { background: #1C3D5A; color: white; border: none; padding: 6px 12px; font-size: 12px; font-weight: bold; border-radius: 4px; cursor: pointer; text-decoration: none; }
+        .btn-secondary { background: #E2E8F0; color: #2D3748; font-weight: bold; }
+        
+        .card.visited { border-left-color: #A0AEC0; opacity: 0.8; }
         .card.visited .source-tag { background: #E2E8F0; color: #4A5568; }
         
-        .highlight { background-color: #FFF3C4; font-weight: bold; padding: 2px 0; }
-        .no-results { text-align: center; color: #718096; margin-top: 50px; font-size: 16px; line-height: 1.5; }
+        .highlight { background-color: #FFF3C4; font-weight: bold; color: #000000; }
+        .no-results { text-align: center; color: #718096; margin-top: 40px; font-size: 15px; }
         
-        .footer-banner { background: white; border-top: 1px solid #E2E8F0; padding: 15px; position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 13px; color: #4A5568; box-shadow: 0 -4px 12px rgba(0,0,0,0.03); z-index: 1000; }
+        .footer-banner { background: white; border-top: 1px solid #E2E8F0; padding: 12px; position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 12px; color: #2D3748; box-shadow: 0 -4px 12px rgba(0,0,0,0.03); z-index: 1000; }
         .footer-banner a { color: #1C3D5A; text-decoration: none; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔍 Pocket Policy</h1>
-        <p class="meta-info">The Commons: PublicSphere | Official rules, made readable.</p>
+        <p class="meta-info">Data-Saving Portal | Dynamic structural multi-line breakdown maps.</p>
         
-        <input type="text" id="search-input" class="search-box" placeholder="What are you looking for? (Type words like: resources, vehicles, limits...)" oninput="performSearch()">
+        <input type="text" id="search-input" class="search-box" placeholder="Search rules (e.g., vehicles, income, resource limits)..." oninput="performSearch()">
         
         <div id="results-container">
-            <p class="no-results">✨ <strong>Type what you're trying to find above.</strong><br>We will instantly look through all the complex policy pages to pull up the exact sections you need.</p>
+            <p class="no-results">✨ <strong>Type what you want to find above.</strong><br>Results read instantly from device memory to protect your mobile data limits.</p>
         </div>
     </div>
 
     <div class="footer-banner">
-        📱 <strong>Want a quick shortcut on your phone screen?</strong> Open your browser menu &rarr; select <a href="#" onclick="alertPWAInstructions(); return false;">"Add to Home Screen"</a>.
+        📱 <strong>Save Data:</strong> Open browser menu &rarr; select <a href="#" onclick="alertPWAInstructions(); return false;">"Add to Home Screen"</a> to use this search 100% offline.
     </div>
 
     <script src="data.js"></script>
@@ -77,88 +91,124 @@ def generate_portal():
                 const container = document.getElementById('results-container');
                 container.innerHTML = '';
                 
-                // FIXED: Using backticks (``) for innerHTML template strings to allow natural single and double quotes without string breakout crashes
                 if (query.length < 2) {
-                    container.innerHTML = `<p class="no-results">✨ <strong>Type what you're trying to find above.</strong><br>We will instantly look through all the complex policy pages to pull up the exact sections you need.</p>`;
+                    container.innerHTML = `<p class="no-results">✨ <strong>Type what you're trying to find above.</strong></p>`;
                     return;
                 }
                 
                 const matches = database.filter(item => {
-                    const searchTarget = (item.title || item.text || item.name || "").toLowerCase();
+                    const searchTarget = (item.text || "").toLowerCase();
                     return searchTarget.includes(query);
                 });
                 
                 if (matches.length === 0) {
-                    container.innerHTML = `<p class="no-results">🔍 <strong>We couldn't find any official rules for "${query}".</strong><br>Check your spelling, or try typing a broader word like "asset" or "income".</p>`;
+                    container.innerHTML = `<p class="no-results">🔍 <strong>No rules found for "${query}".</strong></p>`;
                     return;
                 }
                 
-                const limit = Math.min(matches.length, 100);
+                const limit = Math.min(matches.length, 40);
                 for (let i = 0; i < limit; i++) {
-                    const item = matches[i];
+                    const currentMatch = matches[i];
+                    const dbIndex = database.findIndex(item => item.id === currentMatch.id);
+
                     const reg = new RegExp(query, 'gi');
-                    
-                    const rawDisplayText = item.title || item.text || item.name || "Untitled Policy Entry";
-                    const highlightedText = rawDisplayText.replace(reg, (match) => `<span class="highlight">${match}</span>`);
-                    
-                    const isVisited = localStorage.getItem(item.id) === "visited";
+                    const highlightedPreview = currentMatch.text.replace(reg, (match) => `<span class="highlight">${match}</span>`);
+
+                    const isVisited = localStorage.getItem(currentMatch.id) === "visited";
                     const cardClass = isVisited ? 'card visited' : 'card';
-                    
+
                     const card = document.createElement('div');
                     card.className = cardClass;
-                    card.id = item.id || ('doc_' + i);
-                    
-                    card.dataset.url = item.url || item.href || "#";
-                    card.addEventListener('click', function() {
-                        handleCardClick(this.id, this.dataset.url);
-                    });
-
-                    const displayBadge = item.type || "LINK";
+                    card.id = 'container_' + currentMatch.id;
 
                     card.innerHTML = `
-                        <span class="source-tag">${displayBadge}</span>
-                        <div class="rule-text">${highlightedText}</div>
+                        <div class="card-header" onclick="toggleBreakdown('${currentMatch.id}')">
+                            <span class="source-tag">${currentMatch.source}</span>
+                            <div class="rule-text">${highlightedPreview}</div>
+                        </div>
+                        <div class="nested-breakdown" id="breakdown_${currentMatch.id}">
+                            <strong>📖 Surrounding Context Breakdown:</strong>
+                            
+                            <div class="expansion-trigger" onclick="expandContext('${currentMatch.id}', ${baseIndex = dbIndex}, 'up')">🔼 Load Previous Paragraph</div>
+                            
+                            <div class="context-stream" id="stream_${currentMatch.id}">
+                                <div class="context-block current">${currentMatch.text}</div>
+                            </div>
+                            
+                            <div class="expansion-trigger" onclick="expandContext('${currentMatch.id}', ${baseIndex = dbIndex}, 'down')">🔽 Load Next Paragraph</div>
+                            
+                            <div class="action-bar">
+                                <button class="btn" onclick="copyBreakdownText('${currentMatch.id}')">📋 Copy Highlighted Rule</button>
+                                <a class="btn btn-secondary" href="${currentMatch.url}" target="_blank" onclick="markAsVisited('${currentMatch.id}')">🌐 Open Full Original Source (Uses Data)</a>
+                            </div>
+                        </div>
                     `;
                     container.appendChild(card);
+                    
+                    expandContext(currentMatch.id, dbIndex, 'up');
+                    expandContext(currentMatch.id, dbIndex, 'down');
                 }
             } catch (err) {
-                console.error("Search Loop Failure:", err);
+                console.error("Search Render Failure:", err);
             }
         }
 
-        function handleCardClick(id, targetUrl) {
-            localStorage.setItem(id, "visited");
-            const card = document.getElementById(id);
-            if (card) card.classList.add('visited');
+        function expandContext(id, baseIndex, direction) {
+            const stream = document.getElementById('stream_' + id);
+            const currentItem = database[baseIndex];
             
-            // Extract the raw text from the clicked card (minus the badge text)
-            const textToCopy = card.querySelector('.rule-text').innerText.trim();
-            
-            // Automatically copy it to the user's phone/computer clipboard
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(textToCopy).catch(err => {
-                    console.error('Clipboard copy blocked:', err);
-                });
+            if (direction === 'up') {
+                if (typeof stream.dataset.topIndex === 'undefined') stream.dataset.topIndex = baseIndex;
+                let nextTop = parseInt(stream.dataset.topIndex) - 1;
+                
+                if (nextTop >= 0 && database[nextTop].source === currentItem.source) {
+                    const block = document.createElement('div');
+                    block.className = 'context-block';
+                    block.innerText = database[nextTop].text;
+                    stream.insertBefore(block, stream.firstChild);
+                    stream.dataset.topIndex = nextTop;
+                }
+            } else if (direction === 'down') {
+                if (typeof stream.dataset.bottomIndex === 'undefined') stream.dataset.bottomIndex = baseIndex;
+                let nextBottom = parseInt(stream.dataset.bottomIndex) + 1;
+                
+                if (nextBottom < database.length && database[nextBottom].source === currentItem.source) {
+                    const block = document.createElement('div');
+                    block.className = 'context-block';
+                    block.innerText = database[nextBottom].text;
+                    stream.appendChild(block);
+                    stream.dataset.bottomIndex = nextBottom;
+                }
             }
+        }
 
-            alert(
-                '📋 EXACT TEXT COPIED TO CLIPBOARD!\\n\\n' +
-                'When the document opens, use your device search tool and simply PASTE to jump straight to the line:\\n\\n' +
-                '📱 iPhone: Tap the Puzzle Piece icon in the address bar -> choose "Find on Page".\\n\\n' +
-                '🤖 Android: Tap the 3 dots menu (top right) -> choose "Find in page".\\n\\n' +
-                '🖥️ Desktop/Tablet: Press Cmd+F (Mac) or Ctrl+F (Windows/Linux).\\n\\n' +
-                '⚠️ SAFETY NOTE: State rules change. Please DELETE this document file after use so you do not rely on outdated data!'
-            );
-            
-            window.open(targetUrl, '_blank');
+        function toggleBreakdown(id) {
+            const panel = document.getElementById('breakdown_' + id);
+            const isVisible = panel.style.display === 'block';
+            document.querySelectorAll('.nested-breakdown').forEach(el => el.style.display = 'none');
+            if (!isVisible) {
+                panel.style.display = 'block';
+                markAsVisited(id);
+            }
+        }
+
+        function markAsVisited(id) {
+            localStorage.setItem(id, "visited");
+            const wrapper = document.getElementById('container_' + id);
+            if (wrapper) wrapper.classList.add('visited');
+        }
+
+        function copyBreakdownText(id) {
+            const panel = document.getElementById('breakdown_' + id);
+            const currentText = panel.querySelector('.context-block.current').innerText;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(currentText);
+                alert('📋 Rule text copied directly to your device clipboard!');
+            }
         }
 
         function alertPWAInstructions() {
-            alert(
-                'Keep Pocket Policy handy on your phone:\\n\\n' +
-                'Apple iPhone (Safari): Tap the "Share" button (the box with an up arrow) at the bottom, then choose "Add to Home Screen".\\n\\n' +
-                'Android (Chrome): Tap the three dots menu in the top right corner, then choose "Add to Home Screen".'
-            );
+            alert('To save data, open your browser options menu and tap "Add to Home Screen". This locks the app onto your phone so you can search the manual completely offline without wasting cellular data plans.');
         }
     </script>
 </body>
@@ -167,7 +217,7 @@ def generate_portal():
 
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_content)
-    print("✨ SUCCESS! All internal string quotes safely wrapped. Your app is ready!")
+    print("✨ SUCCESS! High-contrast accessible text layout built successfully.")
 
 if __name__ == "__main__":
     generate_portal()
