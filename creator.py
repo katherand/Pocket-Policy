@@ -2,66 +2,77 @@ import json
 import os
 
 def generate_portal():
-    print("🛠️ Pocket Policy Creator building accessible high-contrast reader...")
+    print("🛠️ Pocket Policy Creator processing deep-text blocks & county maps...")
     
     if not os.path.exists("policies.json"):
-        print("❌ Error: 'policies.json' missing! Run 'python3 scrapyr.py' first.")
+        print("❌ Error: 'policies.json' missing! Run your scraper first.")
         return
 
     with open("policies.json", "r", encoding="utf-8") as f:
         records = json.load(f)
 
-    json_string = json.dumps(records, indent=4)
-    data_js_content = "const database = " + json_string + ";"
+    # Separate narrative policy blocks from local static county entries safely
+    policy_data = [r for r in records if r.get("source") != "COUNTY DIRECTORY"]
+    county_data = [r for r in records if r.get("source") == "COUNTY DIRECTORY"]
+
+    # Package everything up for the client engine layer
+    database_payload = {
+        "policies": policy_data,
+        "counties": county_data
+    }
     
+    data_js_content = "const appPayload = " + json.dumps(database_payload, indent=4) + ";"
     with open("data.js", "w", encoding="utf-8") as f:
         f.write(data_js_content)
-    print("📦 Synchronized 'data.js' dataset file.")
+    print("📦 Synchronized unified data payload script.")
 
     html_content = """<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>Pocket Policy</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 20px; background-color: #F7FAFC; color: #2D3748; padding-bottom: 60px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 20px; background-color: #F7FAFC; color: #2D3748; padding-bottom: 80px; }
         .container { max-width: 900px; margin: 0 auto; }
         h1 { color: #1C3D5A; border-bottom: 3px solid #1C3D5A; padding-bottom: 10px; margin-bottom: 5px; font-size: 28px; font-weight: bold; }
-        .search-box { width: 100%; padding: 12px; font-size: 16px; border: 2px solid #CBD5E0; border-radius: 6px; box-sizing: border-box; margin-bottom: 15px; background: white; }
-        .search-box:focus { outline: none; border-color: #1C3D5A; box-shadow: 0 0 8px rgba(28,61,90,0.2); }
         .meta-info { font-size: 13px; color: #718096; margin-bottom: 15px; font-weight: 500; }
         
-        .card { background: white; margin-bottom: 12px; border-radius: 6px; border-left: 5px solid #1C3D5A; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; transition: all 0.2s; }
+        /* Fast Actions Bar */
+        .portal-actions { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .action-link { flex: 1; min-width: 140px; background: #EBF8FF; color: #2B6CB0; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; text-decoration: none; font-size: 13px; border: 1px solid #BEE3F8; }
+        .action-link:active { background: #BEE3F8; }
+
+        /* County Dropdown Style */
+        .county-widget { background: #EDF2F7; padding: 15px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #E2E8F0; }
+        .widget-title { font-size: 13px; font-weight: bold; color: #4A5568; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .select-box { width: 100%; padding: 10px; font-size: 15px; border-radius: 4px; border: 1px solid #CBD5E0; background: white; font-weight: 500; }
+        .office-display { display: none; background: white; margin-top: 10px; padding: 15px; border-radius: 4px; border-left: 4px solid #3182CE; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .office-row { font-size: 15px; line-height: 1.5; margin-bottom: 8px; }
+
+        .search-box { width: 100%; padding: 12px; font-size: 16px; border: 2px solid #CBD5E0; border-radius: 6px; box-sizing: border-box; margin-bottom: 15px; background: white; }
+        .search-box:focus { outline: none; border-color: #1C3D5A; box-shadow: 0 0 8px rgba(28,61,90,0.2); }
+        
+        .card { background: white; margin-bottom: 12px; border-radius: 6px; border-left: 5px solid #1C3D5A; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
         .card-header { padding: 15px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; }
         .card:active .card-header { background: #F7FAFC; }
         
         .source-tag { font-weight: bold; color: #1C3D5A; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; background: #EBF8FF; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 8px; }
         .rule-text { font-size: 15px; line-height: 1.5; color: #2D3748; width: 100%; }
         
-        /* Nested Breakdown Content Box */
         .nested-breakdown { display: none; background: #F8FAFC; border-top: 1px solid #E2E8F0; padding: 15px; font-size: 14px; color: #2D3748; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
         .context-stream { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
-        
-        /* ACCESSIBILITY FIX: Matched color to #2D3748 and bumped up opacity to 1 for perfect contrast */
         .context-block { padding-left: 10px; border-left: 3px solid #CBD5E0; font-style: italic; color: #2D3748; opacity: 1; line-height: 1.5; }
         .context-block.current { font-style: normal; font-weight: 500; border-left-color: #3182CE; background: #FFF3C4; padding: 6px 10px; border-radius: 4px; }
         
-        .expansion-trigger { text-align: center; margin: 5px 0; font-size: 12px; font-weight: bold; color: #1C3D5A; cursor: pointer; padding: 6px; background: #E2E8F0; border-radius: 4px; transition: background 0.2s; }
-        .expansion-trigger:hover { background: #CBD5E0; }
-        
+        .expansion-trigger { text-align: center; margin: 5px 0; font-size: 12px; font-weight: bold; color: #1C3D5A; cursor: pointer; padding: 6px; background: #E2E8F0; border-radius: 4px; }
         .action-bar { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #CBD5E0; display: flex; gap: 10px; flex-wrap: wrap; }
         .btn { background: #1C3D5A; color: white; border: none; padding: 6px 12px; font-size: 12px; font-weight: bold; border-radius: 4px; cursor: pointer; text-decoration: none; }
         .btn-secondary { background: #E2E8F0; color: #2D3748; font-weight: bold; }
         
         .card.visited { border-left-color: #A0AEC0; opacity: 0.8; }
-        .card.visited .source-tag { background: #E2E8F0; color: #4A5568; }
-        
         .highlight { background-color: #FFF3C4; font-weight: bold; color: #000000; }
         .no-results { text-align: center; color: #718096; margin-top: 40px; font-size: 15px; }
-        
         .footer-banner { background: white; border-top: 1px solid #E2E8F0; padding: 12px; position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 12px; color: #2D3748; box-shadow: 0 -4px 12px rgba(0,0,0,0.03); z-index: 1000; }
         .footer-banner a { color: #1C3D5A; text-decoration: none; font-weight: bold; }
     </style>
@@ -69,22 +80,92 @@ def generate_portal():
 <body>
     <div class="container">
         <h1>🔍 Pocket Policy</h1>
-        <p class="meta-info">Data-Saving Portal | Dynamic structural multi-line breakdown maps.</p>
+        <p class="meta-info">Data-Saving Portal | Direct localized resources completely offline.</p>
         
-        <input type="text" id="search-input" class="search-box" placeholder="Search rules (e.g., vehicles, income, resource limits)..." oninput="performSearch()">
+        <!-- Live Action Portals Splitter (Data Warning Included) -->
+        <div class="portal-actions">
+            <a class="action-link" href="https://apply.scdhhs.gov" target="_blank">🌐 Apply or Renew Online</a>
+            <a class="action-link" href="https://tools.apply.scdhhs.gov" target="_blank">📤 Upload Review Papers</a>
+            <a class="action-link" href="https://www.ssa.gov/myaccount/" target="_blank" style="background: #F0FFF4; color: #22543D; border-color: #C6F6D5;">📄 Get SSA Award Letter</a>
+            <a class="action-link" href="https://www.ssa.gov/benefits/ssi/" target="_blank" style="background: #F0FFF4; color: #22543D; border-color: #C6F6D5;">✍️ Apply for SSI Benefits</a>
+        </div>
+
+        <!-- SC Disability Process Explainer Card -->
+        <div style="background: #FFF5F5; padding: 15px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #FED7D7; font-size: 14px; line-height: 1.5; color: #2D3748;">
+            💡 <strong>Important for SC Disability Medicaid:</strong> 
+            <p style="margin: 5px 0 0 0;">
+                If you receive <strong>SSI</strong>, you automatically get SC Medicaid. However, if the federal Social Security Administration (SSA) denies your disability application, <strong>do not give up</strong>. 
+            </p>
+            <p style="margin: 8px 0 0 0;">
+                South Carolina runs a separate, <strong>independent evaluation process</strong>. You can submit the exact same medical application directly to the state, and SC can still approve you for Medicaid independently even if the federal SSA said no.
+            </p>
+        </div>
+
+        <!-- Offline County Drop-off Locator Widget Box -->
+        <div class="county-widget">
+            <div class="widget-title">📍 Physical In-Person Document Submission Locations</div>
+            <select id="county-picker" class="select-box" onchange="showCountyOffice()">
+                <option value="">-- Select client's county to find the local office --</option>
+            </select>
+            <div id="office-panel" class="office-display">
+                <div class="office-row">🏢 <strong>In-Person Drop-Off Address:</strong><br><span id="off-address" style="font-weight: 500; color: #1C3D5A;"></span></div>
+                <div class="office-row" style="margin-top: 10px; background: #F7FAFC; padding: 10px; border-radius: 4px; border: 1px dashed #CBD5E0; font-size: 14px;">
+                    📋 <strong>Drop-Off Instructions:</strong><br><span id="off-notes"></span>
+                </div>
+                <button class="btn" style="margin-top: 12px; background: #4A5568;" onclick="copyOfficeDetails()">📋 Copy Office Address</button>
+            </div>
+        </div>
         
+        <input type="text" id="search-input" class="search-box" placeholder="Search policy manual (e.g., vehicles, asset limits)..." oninput="performSearch()">
         <div id="results-container">
-            <p class="no-results">✨ <strong>Type what you want to find above.</strong><br>Results read instantly from device memory to protect your mobile data limits.</p>
+            <p class="no-results">✨ <strong>Type words above to lookup specific policy sections.</strong></p>
         </div>
     </div>
 
     <div class="footer-banner">
-        📱 <strong>Save Data:</strong> Open browser menu &rarr; select <a href="#" onclick="alertPWAInstructions(); return false;">"Add to Home Screen"</a> to use this search 100% offline.
+        📱 <strong>Save Data:</strong> Open browser options &rarr; select <a href="#" onclick="alertPWAInstructions(); return false;">"Add to Home Screen"</a>.
     </div>
 
     <script src="data.js"></script>
 
     <script>
+        const database = appPayload.policies;
+        const counties = appPayload.counties;
+
+        const picker = document.getElementById('county-picker');
+        counties.sort((a,b) => a.county.localeCompare(b.county)).forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item.id;
+            opt.innerText = item.county + ' County Office';
+            picker.appendChild(opt);
+        });
+
+        function showCountyOffice() {
+            const targetId = document.getElementById('county-picker').value;
+            const panel = document.getElementById('office-panel');
+            if(!targetId) { panel.style.display = 'none'; return; }
+            
+            const match = counties.find(c => c.id === targetId);
+            if(match) {
+                document.getElementById('off-address').innerText = match.address;
+                document.getElementById('off-notes').innerText = match.notes;
+                panel.style.display = 'block';
+            }
+        }
+
+        function copyOfficeDetails() {
+            const countySelect = document.getElementById('county-picker');
+            const countyName = countySelect.options[countySelect.selectedIndex].text;
+            const addr = document.getElementById('off-address').innerText;
+            const note = document.getElementById('off-notes').innerText;
+            const fullText = "📍 " + countyName + " Submission Location:\\nDrop-Off Address: " + addr + "\\n\\nDirections: " + note;
+            
+            if(navigator.clipboard) {
+                navigator.clipboard.writeText(fullText);
+                alert('📋 Physical office address copied to clipboard to text or share with the client!');
+            }
+        }
+
         function performSearch() {
             try {
                 const query = document.getElementById('search-input').value.toLowerCase().trim();
@@ -96,11 +177,7 @@ def generate_portal():
                     return;
                 }
                 
-                const matches = database.filter(item => {
-                    const searchTarget = (item.text || "").toLowerCase();
-                    return searchTarget.includes(query);
-                });
-                
+                const matches = database.filter(item => (item.text || "").toLowerCase().includes(query));
                 if (matches.length === 0) {
                     container.innerHTML = `<p class="no-results">🔍 <strong>No rules found for "${query}".</strong></p>`;
                     return;
@@ -110,13 +187,11 @@ def generate_portal():
                 for (let i = 0; i < limit; i++) {
                     const currentMatch = matches[i];
                     const dbIndex = database.findIndex(item => item.id === currentMatch.id);
-
                     const reg = new RegExp(query, 'gi');
                     const highlightedPreview = currentMatch.text.replace(reg, (match) => `<span class="highlight">${match}</span>`);
 
                     const isVisited = localStorage.getItem(currentMatch.id) === "visited";
                     const cardClass = isVisited ? 'card visited' : 'card';
-
                     const card = document.createElement('div');
                     card.className = cardClass;
                     card.id = 'container_' + currentMatch.id;
@@ -128,15 +203,11 @@ def generate_portal():
                         </div>
                         <div class="nested-breakdown" id="breakdown_${currentMatch.id}">
                             <strong>📖 Surrounding Context Breakdown:</strong>
-                            
-                            <div class="expansion-trigger" onclick="expandContext('${currentMatch.id}', ${baseIndex = dbIndex}, 'up')">🔼 Load Previous Paragraph</div>
-                            
+                            <div class="expansion-trigger" onclick="expandContext('${currentMatch.id}', ${dbIndex}, 'up')">🔼 Load Previous Paragraph</div>
                             <div class="context-stream" id="stream_${currentMatch.id}">
                                 <div class="context-block current">${currentMatch.text}</div>
                             </div>
-                            
-                            <div class="expansion-trigger" onclick="expandContext('${currentMatch.id}', ${baseIndex = dbIndex}, 'down')">🔽 Load Next Paragraph</div>
-                            
+                            <div class="expansion-trigger" onclick="expandContext('${currentMatch.id}', ${dbIndex}, 'down')">🔽 Load Next Paragraph</div>
                             <div class="action-bar">
                                 <button class="btn" onclick="copyBreakdownText('${currentMatch.id}')">📋 Copy Highlighted Rule</button>
                                 <a class="btn btn-secondary" href="${currentMatch.url}" target="_blank" onclick="markAsVisited('${currentMatch.id}')">🌐 Open Full Original Source (Uses Data)</a>
@@ -144,23 +215,18 @@ def generate_portal():
                         </div>
                     `;
                     container.appendChild(card);
-                    
                     expandContext(currentMatch.id, dbIndex, 'up');
                     expandContext(currentMatch.id, dbIndex, 'down');
                 }
-            } catch (err) {
-                console.error("Search Render Failure:", err);
-            }
+            } catch (err) { console.error(err); }
         }
 
         function expandContext(id, baseIndex, direction) {
             const stream = document.getElementById('stream_' + id);
             const currentItem = database[baseIndex];
-            
             if (direction === 'up') {
                 if (typeof stream.dataset.topIndex === 'undefined') stream.dataset.topIndex = baseIndex;
                 let nextTop = parseInt(stream.dataset.topIndex) - 1;
-                
                 if (nextTop >= 0 && database[nextTop].source === currentItem.source) {
                     const block = document.createElement('div');
                     block.className = 'context-block';
@@ -171,7 +237,6 @@ def generate_portal():
             } else if (direction === 'down') {
                 if (typeof stream.dataset.bottomIndex === 'undefined') stream.dataset.bottomIndex = baseIndex;
                 let nextBottom = parseInt(stream.dataset.bottomIndex) + 1;
-                
                 if (nextBottom < database.length && database[nextBottom].source === currentItem.source) {
                     const block = document.createElement('div');
                     block.className = 'context-block';
@@ -186,10 +251,7 @@ def generate_portal():
             const panel = document.getElementById('breakdown_' + id);
             const isVisible = panel.style.display === 'block';
             document.querySelectorAll('.nested-breakdown').forEach(el => el.style.display = 'none');
-            if (!isVisible) {
-                panel.style.display = 'block';
-                markAsVisited(id);
-            }
+            if (!isVisible) { panel.style.display = 'block'; markAsVisited(id); }
         }
 
         function markAsVisited(id) {
@@ -217,7 +279,7 @@ def generate_portal():
 
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_content)
-    print("✨ SUCCESS! High-contrast accessible text layout built successfully.")
+    print("✨ SUCCESS! Interactive multi-portal dashboard compiled cleanly.")
 
 if __name__ == "__main__":
     generate_portal()
