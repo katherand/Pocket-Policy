@@ -34,60 +34,69 @@ def extract_text_from_docx(file_bytes):
     return paragraphs
 
 def harvest_live_counties():
-    """Extracts live county office data with an immediate, absolute 46-county safety net fallback."""
-    print("📍 Harvesting County Office Matrix...")
+    """Intelligently sweeps multi-line landmark layout groups block-by-block."""
+    print("📍 Dynamically harvesting structural multi-line County Office Matrix...")
     county_records = []
     
     try:
         res = requests.get(COUNTY_DIRECTORY_URL, headers=headers, verify=False, timeout=15)
         soup = BeautifulSoup(res.text, "html.parser")
-        list_items = soup.find_all("li")
         
-        for item in list_items:
-            text = clean_text(item.text)
-            # The corrected line (removed the extra parenthesis at the very end)
-            if "county." in text.lower() or "county (closed" in text.lower():
-                match = re.search(r'^([A-Za-z\s]+)\s+County', text, re.IGNORECASE)
-                if match:
-                    county_name = match.group(1).strip()
-                    details = text.replace("( Map )", "").strip()
-                    
-                    if len(county_name) < 25 and len(details) > 15:
-                        c_id = f"county_{county_name.lower().replace(' ', '_')}"
-                        if not any(c['id'] == c_id for c in county_records):
-                            county_records.append({
-                                "id": c_id,
-                                "source": "COUNTY DIRECTORY",
-                                "county": county_name,
-                                "address": details,
-                                "notes": "Official Medicaid eligibility submission point. Request a physical paper tracking receipt if dropping off updates or applications in person."
-                            })
-    except Exception as e:
-        print(f"⚠️ Live scrape restricted: {e}")
+        # We sweep through all layout container blocks sequentially
+        all_elements = soup.find_all(['p', 'div', 'td', 'h3', 'h4', 'strong'])
         
-    # ABSOLUTE GUARANTEE: If the layout structure causes 0 rows to be parsed, load all 46 SC counties instantly
-    if len(county_records) == 0:
-        print("🔄 Applying the master 46-county structural grid matrix...")
-        sc_counties = [
-            "Abbeville", "Aiken", "Allendale", "Anderson", "Bamberg", "Barnwell", 
-            "Beaufort", "Berkeley", "Calhoun", "Charleston", "Cherokee", "Chester", 
-            "Chesterfield", "Clarendon", "Colleton", "Darlington", "Dillon", "Dorchester", 
-            "Edgefield", "Fairfield", "Florence", "Georgetown", "Greenville", "Greenwood", 
-            "Hampton", "Horry", "Jasper", "Kershaw", "Lancaster", "Laurens", "Lee", 
-            "Lexington", "Marion", "Marlboro", "McCormick", "Newberry", "Oconee", 
-            "Orangeburg", "Pickens", "Richland", "Saluda", "Spartanburg", "Sumter", 
-            "Union", "Williamsburg", "York"
-        ]
-        for c in sc_counties:
-            county_records.append({
-                "id": f"county_{c.lower().replace(' ', '_')}",
-                "source": "COUNTY DIRECTORY",
-                "county": c,
-                "address": f"Official SCDHHS Medicaid Eligibility Office for {c} County, SC.",
-                "notes": "In-person drop-off location. Please double-check local operating hours before traveling to submit paperwork."
-            })
+        current_county = None
+        address_accumulator = []
+        
+        for el in all_elements:
+            text = clean_text(el.text)
+            if not text:
+                continue
+                
+            # Step A: Catch the Bold Heading/Standalone line naming the county
+            # e.g., "Abbeville County" or "Aiken County"
+            if re.search(r'^[A-Za-z\s]+\s+County$', text, re.IGNORECASE):
+                # If we were tracking a previous county, save its built address first
+                if current_county and address_accumulator:
+                    full_addr = ", ".join(address_accumulator).replace(" (Map)", "").replace("(Map)", "").strip()
+                    county_records.append({
+                        "id": f"county_{current_county.lower().replace(' ', '_')}",
+                        "source": "COUNTY DIRECTORY",
+                        "county": current_county,
+                        "address": re.sub(r'\s+', ' ', full_addr)
+                    })
+                
+                # Start fresh tracking the new county name
+                current_county = text.replace("County", "").strip()
+                address_accumulator = []
+                continue
             
-    print(f"✅ Securely loaded {len(county_records)} counties into the local database registry.")
+            # Step B: If we are actively tracking a county, grab the building names & streets
+            if current_county:
+                # Add the string fragment to our address pool for this county
+                address_accumulator.append(text)
+                
+                # Step C: The "(Map)" text marks the absolute end of this county's visual container
+                if "(map)" in text.lower():
+                    full_addr = ", ".join(address_accumulator).replace(" (Map)", "").replace("(Map)", "").strip()
+                    c_id = f"county_{current_county.lower().replace(' ', '_')}"
+                    
+                    if not any(c['id'] == c_id for c in county_records):
+                        county_records.append({
+                            "id": c_id,
+                            "source": "COUNTY DIRECTORY",
+                            "county": current_county,
+                            "address": re.sub(r'\s+', ' ', full_addr)
+                        })
+                    
+                    # Reset tracker fields so we don't accidentally leak text into the next county
+                    current_county = None
+                    address_accumulator = []
+                    
+    except Exception as e:
+        print(f"⚠️ Dynamic multi-line structural parser error: {e}")
+        
+    print(f"✅ Extracted {len(county_records)} live county office complexes directly from layout stream.")
     return county_records
 
 def harvest_deep_policy():

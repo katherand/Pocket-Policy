@@ -10,20 +10,18 @@
         h1 { color: #1C3D5A; border-bottom: 3px solid #1C3D5A; padding-bottom: 10px; margin-bottom: 5px; font-size: 28px; font-weight: bold; }
         .meta-info { font-size: 13px; color: #718096; margin-bottom: 15px; font-weight: 500; }
         
-        /* Fast Actions Bar */
+        .search-box { width: 100%; padding: 12px; font-size: 16px; border: 2px solid #CBD5E0; border-radius: 6px; box-sizing: border-box; margin-bottom: 20px; background: white; }
+        .search-box:focus { outline: none; border-color: #1C3D5A; box-shadow: 0 0 8px rgba(28,61,90,0.2); }
+
         .portal-actions { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
         .action-link { flex: 1; min-width: 140px; background: #EBF8FF; color: #2B6CB0; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; text-decoration: none; font-size: 13px; border: 1px solid #BEE3F8; }
         .action-link:active { background: #BEE3F8; }
 
-        /* County Dropdown Style */
         .county-widget { background: #EDF2F7; padding: 15px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #E2E8F0; }
         .widget-title { font-size: 13px; font-weight: bold; color: #4A5568; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
         .select-box { width: 100%; padding: 10px; font-size: 15px; border-radius: 4px; border: 1px solid #CBD5E0; background: white; font-weight: 500; }
         .office-display { display: none; background: white; margin-top: 10px; padding: 15px; border-radius: 4px; border-left: 4px solid #3182CE; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .office-row { font-size: 15px; line-height: 1.5; margin-bottom: 8px; }
-
-        .search-box { width: 100%; padding: 12px; font-size: 16px; border: 2px solid #CBD5E0; border-radius: 6px; box-sizing: border-box; margin-bottom: 15px; background: white; }
-        .search-box:focus { outline: none; border-color: #1C3D5A; box-shadow: 0 0 8px rgba(28,61,90,0.2); }
+        .office-row { font-size: 15px; line-height: 1.5; margin-bottom: 8px; color: #2D3748; }
         
         .card { background: white; margin-bottom: 12px; border-radius: 6px; border-left: 5px solid #1C3D5A; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
         .card-header { padding: 15px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; }
@@ -54,7 +52,14 @@
         <h1>🔍 Pocket Policy</h1>
         <p class="meta-info">Data-Saving Portal | Direct localized resources completely offline.</p>
         
-        <!-- Live Action Portals Splitter (Data Warning Included) -->
+        <!-- Search Bar Primary Placement -->
+        <input type="text" id="search-input" class="search-box" placeholder="Search policy manual (e.g., vehicles, asset limits)..." oninput="performSearch()">
+        
+        <div id="results-container"></div>
+
+        <hr style="border: 0; border-top: 2px dashed #E2E8F0; margin: 25px 0;">
+
+        <!-- Portals Grid -->
         <div class="portal-actions">
             <a class="action-link" href="https://apply.scdhhs.gov" target="_blank">🌐 Apply or Renew Online</a>
             <a class="action-link" href="https://tools.apply.scdhhs.gov" target="_blank">📤 Upload Review Papers</a>
@@ -80,17 +85,14 @@
                 <option value="">-- Select client's county to find the local office --</option>
             </select>
             <div id="office-panel" class="office-display">
-                <div class="office-row">🏢 <strong>In-Person Drop-Off Address:</strong><br><span id="off-address" style="font-weight: 500; color: #1C3D5A;"></span></div>
+                <div class="office-row">🏢 <strong>In-Person Drop-Off Address:</strong><br><span id="off-address" style="font-weight: bold; color: #1C3D5A; display: block; margin-top: 4px;"></span></div>
                 <div class="office-row" style="margin-top: 10px; background: #F7FAFC; padding: 10px; border-radius: 4px; border: 1px dashed #CBD5E0; font-size: 14px;">
-                    📋 <strong>Drop-Off Instructions:</strong><br><span id="off-notes"></span>
+                    🕒 <strong>Standard Operating Hours:</strong><br><span style="font-weight: bold; color: #22543D;">Open Monday-Friday, 8:30 a.m. - 5 p.m.</span>
+                    <br><br>
+                    ℹ️ <strong>Submission Rules:</strong> Official in-person drop-off location. If you submit paperwork here, make sure to ask the intake clerk for a physical, dated paper tracking receipt.
                 </div>
-                <button class="btn" style="margin-top: 12px; background: #4A5568;" onclick="copyOfficeDetails()">📋 Copy Office Address</button>
+                <button class="btn" style="margin-top: 12px; background: #4A5568;" onclick="copyOfficeDetails()">📋 Copy Office Details</button>
             </div>
-        </div>
-        
-        <input type="text" id="search-input" class="search-box" placeholder="Search policy manual (e.g., vehicles, asset limits)..." oninput="performSearch()">
-        <div id="results-container">
-            <p class="no-results">✨ <strong>Type words above to lookup specific policy sections.</strong></p>
         </div>
     </div>
 
@@ -104,6 +106,7 @@
         const database = appPayload.policies;
         const counties = appPayload.counties;
 
+        // Populate dropdown Menu
         const picker = document.getElementById('county-picker');
         counties.sort((a,b) => a.county.localeCompare(b.county)).forEach(item => {
             const opt = document.createElement('option');
@@ -120,7 +123,6 @@
             const match = counties.find(c => c.id === targetId);
             if(match) {
                 document.getElementById('off-address').innerText = match.address;
-                document.getElementById('off-notes').innerText = match.notes;
                 panel.style.display = 'block';
             }
         }
@@ -129,12 +131,13 @@
             const countySelect = document.getElementById('county-picker');
             const countyName = countySelect.options[countySelect.selectedIndex].text;
             const addr = document.getElementById('off-address').innerText;
-            const note = document.getElementById('off-notes').innerText;
-            const fullText = "📍 " + countyName + " Submission Location:\nDrop-Off Address: " + addr + "\n\nDirections: " + note;
+            
+            // Clean Clipboard Construction without the double-check hours text
+            const fullText = "📍 " + countyName + " Submission Location:\nDrop-Off Address: " + addr + "\nHours: Open Monday-Friday, 8:30 a.m. - 5 p.m.\n\nNote: Official in-person drop-off location. Please request a physical paper tracking receipt from the intake clerk upon delivery.";
             
             if(navigator.clipboard) {
                 navigator.clipboard.writeText(fullText);
-                alert('📋 Physical office address copied to clipboard to text or share with the client!');
+                alert('📋 Physical office address & standard operating hours copied to clipboard!');
             }
         }
 
@@ -144,10 +147,7 @@
                 const container = document.getElementById('results-container');
                 container.innerHTML = '';
                 
-                if (query.length < 2) {
-                    container.innerHTML = `<p class="no-results">✨ <strong>Type what you're trying to find above.</strong></p>`;
-                    return;
-                }
+                if (query.length < 2) return;
                 
                 const matches = database.filter(item => (item.text || "").toLowerCase().includes(query));
                 if (matches.length === 0) {
@@ -193,6 +193,7 @@
             } catch (err) { console.error(err); }
         }
 
+        // Context stream expansions
         function expandContext(id, baseIndex, direction) {
             const stream = document.getElementById('stream_' + id);
             const currentItem = database[baseIndex];

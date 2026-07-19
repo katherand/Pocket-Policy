@@ -10,6 +10,9 @@ venv/
 .venv/
 env/
 
+# Ignore unused file
+get_counties.py
+
 # Ignore local OS metadata clutter
 .DS_Store
 Thumbs.db
