@@ -1,0 +1,59 @@
+name: Monthly MPPM Policy & Data Refresh
+
+on:
+  schedule:
+    # Runs at 04:00 UTC on the 2nd day of every month
+    # (Gives state EEMS updates on the 1st a 24-hour buffer to land)
+    - cron: '0 4 2 * *'
+  workflow_dispatch: # Allows manual trigger anytime from GitHub web UI
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 urllib3 python-docx
+
+      - name: Run Policy Scraper (Active - SC & All States)
+        run: |
+          cd pocket-policy
+          python scrapyr.py
+
+      # =======================================================================
+      # NOTE FOR OTHER STATES:
+      # If your state's county directory HTML scrapes cleanly with get_counties.py,
+      # uncomment the two lines below to automatically refresh location data monthly!
+      # (Left disabled for SC since SC location data is maintained in data.js due to messy data formats at the state level that break the script).
+      # =======================================================================
+      # - name: Run Location Scraper (Optional - Enable if your state supports it)
+      #   run: |
+      #     cd pocket-policy
+      #     python get_counties.py
+
+      - name: Commit and Push Updated Policy Schema
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add pocket-policy/policies.json
+          
+          # Uncomment the line below if using get_counties.py to stage location changes too:
+          # git add pocket-policy/data.js
+          
+          # Only commit if files actually changed
+          if git diff --staged --quiet; then
+            echo "No policy or location changes detected this month."
+          else
+            git commit -m "auto: monthly MPPM policy refresh [skip ci]"
+            git push
+          fi

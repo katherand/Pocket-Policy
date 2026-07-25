@@ -1,0 +1,25 @@
+[
+  {
+    "_comment": "EXAMPLE 1: Local Eligibility Processing (LEP) / County Office Location Entry",
+    "id": "county_sample_name",
+    "source": "COUNTY DIRECTORY",
+    "county": "Sample County Name",
+    "address": "123 State Street, Suite 100, City, ST 12345",
+    "phone": "(555) 000-0000",
+    "notes": "Optional operational details (e.g., walk-in hours, drop-box availability)"
+  },
+  {
+    "_comment": "EXAMPLE 2: Policy Manual Rule / Regulation Entry",
+    "id": "rule_001",
+    "source": "CHAPTER 01 - GENERAL POLICY",
+    "text": "Insert the exact text block from the state Medicaid Policy and Procedures Manual (MPPM) or regulation document. Ensure text blocks are long enough to provide meaningful context during search indexing (e.g., greater than 30 characters).",
+    "url": "https://example.state.gov/mppm/chapter_01.docx"
+  },
+  {
+    "_comment": "EXAMPLE 3: Deductions & Income Exclusions Rule Entry",
+    "id": "rule_002",
+    "source": "CHAPTER 03 - FINANCIAL ELIGIBILITY",
+    "text": "Document Fees - A fee paid to acquire documentation required to establish eligibility (such as a birth certificate or official medical records) is considered an allowable essential expense deduction.",
+    "url": "https://example.state.gov/mppm/chapter_03.html"
+  }
+]

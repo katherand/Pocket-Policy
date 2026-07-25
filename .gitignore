@@ -1,4 +1,3 @@
-PLAINTEXT
 # Ignore local environment variables & keys
 .env
 *.env.local
@@ -9,9 +8,6 @@ __pycache__/
 venv/
 .venv/
 env/
-
-# Ignore unused file
-get_counties.py
 
 # Ignore local OS metadata clutter
 .DS_Store
