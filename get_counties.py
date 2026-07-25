@@ -1,4 +1,12 @@
-#this file has not worked for South Carolina but other states may find it works well for their data
+"""
+get_counties.py - Dynamic County Directory Scraper
+
+Purpose:
+  Attempts to scrape and parse local county eligibility office addresses  and contact info directly from state government web directories.
+
+Note for Contributors:
+  State site DOM structures vary widely. While this script provides a   baseline parser, inconsistent site formatting (e.g., missing HTML tags)may require tweaking selectors for your state—or falling back to pasting raw text into an LLM using `policy-template.json`.
+"""
 import json
 import re
 import requests
